@@ -9,6 +9,8 @@ readme = "README.md"
 python = "^3.11"
 uvicorn = {extras = ["standard"], version = "^0.22.0"}
 fastapi = "^0.96.0"
+sqlalchemy = "^2.0.15"
+alembic = "^1.11.1"
 
 
 [build-system]
