@@ -1,7 +1,7 @@
 from os import environ
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 
 
 SQLALCHEMY_TESTING_DATABASE_URL = (
@@ -11,3 +11,5 @@ SQLALCHEMY_TESTING_DATABASE_URL = (
 
 engine = create_engine(SQLALCHEMY_TESTING_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autoflush=False, bind=engine)
+
+Base = declarative_base()
