@@ -12,6 +12,8 @@ fastapi = "^0.96.0"
 sqlalchemy = "^2.0.15"
 alembic = "^1.11.1"
 sqlalchemy-utils = "^0.41.1"
+httpx = "^0.24.1"
+psycopg2-binary = "^2.9.6"
 
 
 [tool.poetry.group.dev.dependencies]
