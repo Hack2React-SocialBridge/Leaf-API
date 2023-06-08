@@ -1,19 +1,21 @@
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine
+from sqlalchemy import text
 from sqlalchemy_utils import database_exists, create_database
 
 from leaf.main import app
-from inbin_backend.database import Base, get_db
+from leaf.database import get_db, Base
 from tests.test_database import SQLALCHEMY_TESTING_DATABASE_URL, engine
-from inbin_backend.factories.common import Session
 
 
 @pytest.fixture(scope="session", autouse=True)
 def db_engine():
     if not database_exists(SQLALCHEMY_TESTING_DATABASE_URL):
         create_database(engine.url)
+    with engine.connect() as connection:
+        create_extension = text(f"CREATE EXTENSION IF NOT EXISTS postgis;")
+        connection.execute(create_extension)
 
     Base.metadata.create_all(bind=engine)
     yield engine
@@ -47,5 +49,4 @@ def client(db):
 
 @pytest.fixture(scope="session")
 def factory_boy_session(db_engine):
-
     Session.configure(bind=engine)
