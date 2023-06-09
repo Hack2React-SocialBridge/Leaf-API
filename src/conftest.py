@@ -34,7 +34,6 @@ def db(db_engine):
     connection.close()
 
 
-#
 @pytest.fixture(scope="function")
 def client(db):
     app.dependency_overrides[get_db] = lambda: db

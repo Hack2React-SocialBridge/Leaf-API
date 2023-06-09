@@ -1,5 +1,5 @@
 from tests.factories.users import UserFactory
-from leaf.routers.users import verify_token
+from leaf.auth import verify_token
 
 
 def test_token_generation(client):

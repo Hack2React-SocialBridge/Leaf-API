@@ -16,3 +16,4 @@ class User(Base):
     last_name = Column(String)
     disabled = Column(Boolean)
     profile_image = Column(String)
+

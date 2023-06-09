@@ -1,6 +1,6 @@
 import factory
 from leaf.models import User
-from leaf.routers.users import get_password_hash
+from leaf.auth import get_password_hash
 from tests.factories.common import FactoriesSession
 
 
