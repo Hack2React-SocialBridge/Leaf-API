@@ -8,14 +8,16 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from starlette import status
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 from leaf.database import get_db
 from leaf.models import User
 
 from leaf.repositories.users import get_user_by_email
-from leaf.schemas.users import TokenDataSchema, UserSchema
+from leaf.schemas.users import TokenDataSchema
 
 SECRET_KEY = environ.get("SECRET_KEY")
+SECURITY_PASSWORD_SALT = environ.get("SECURITY_PASSWORD_SALT")
 ALGORITHM = environ.get("ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(environ.get("ACCESS_TOKEN_EXPIRE_MINUTES"))
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -57,7 +59,7 @@ def verify_token(token: str) -> str | None:
 
 
 async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)], db: Session = Depends(get_db)
+        token: Annotated[str, Depends(oauth2_scheme)], db: Session = Depends(get_db)
 ) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -78,8 +80,29 @@ async def get_current_user(
 
 
 async def get_current_active_user(
-    current_user: Annotated[UserSchema, Depends(get_current_user)]
+        current_user: Annotated[User, Depends(get_current_user)]
 ) -> User:
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+
+def generate_confirmation_token(email):
+    serializer = URLSafeTimedSerializer(SECRET_KEY)
+    return serializer.dumps(email, salt=SECURITY_PASSWORD_SALT)
+
+
+Email = str
+
+
+def confirm_token(token, expiration=3600) -> Email | bool:
+    serializer = URLSafeTimedSerializer(SECRET_KEY)
+    try:
+        email = serializer.loads(
+            token,
+            salt=SECURITY_PASSWORD_SALT,
+            max_age=expiration
+        )
+    except (BadSignature, SignatureExpired):
+        return False
+    return email
