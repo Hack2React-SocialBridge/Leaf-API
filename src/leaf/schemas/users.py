@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, PositiveInt
 
 
 class TokenSchema(BaseModel):
@@ -13,3 +13,14 @@ class TokenDataSchema(BaseModel):
 class LoginSchema(BaseModel):
     username: str
     password: str
+
+
+class UserSchema(BaseModel):
+    class Config:
+        orm_mode = True
+
+    id: PositiveInt
+    email: str
+    first_name: str
+    last_name: str
+    disabled: bool = True
