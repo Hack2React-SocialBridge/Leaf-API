@@ -24,3 +24,13 @@ class UserSchema(BaseModel):
     first_name: str
     last_name: str
     disabled: bool = True
+
+
+class UserCreateSchema(BaseModel):
+    class Config:
+        orm_mode = True
+
+    email: str
+    password: str
+    first_name: str
+    last_name: str
