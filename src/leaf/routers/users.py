@@ -75,10 +75,13 @@ async def register(user: UserCreateSchema = Body(...), db: Session = Depends(get
     return db_user
 
 
-@router.post("/confirm", response_model=UserSchema, status_code=200)
+@router.post("/confirm", status_code=200)
 async def confirm_user(token: EmailConfirmationSchema = Body(...), db: Session = Depends(get_db)) -> UserSchema | Response:
     try:
         email = confirm_token(token.key)
         return update_one(db, user_email=email, disabled=False)
     except (BadSignature, SignatureExpired):
         return Response({"details": "Invalid token"}, status_code=400)
+
+
+@router.post("/change-password")
