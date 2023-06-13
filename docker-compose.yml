@@ -36,4 +36,54 @@ services:
     image: redis:7-alpine
     volumes:
       - "./cache-data:/data"
+  celery_beat:
+    build:
+      context: ./
+      dockerfile: docker/python/Dockerfile
+    command: /entrypoint-celerybeat.sh
+    volumes:
+      - ./src:/src/
+    env_file:
+      - env/backend.env
+      - env/db.env
+    depends_on:
+      redis:
+        condition: service_started
+      db:
+        condition: service_healthy
+  flower:
+    build:
+      context: ./
+      dockerfile: docker/python/Dockerfile
+    command: /entrypoint-flower.sh
+    volumes:
+      - ./src:/src/
+    env_file:
+      - env/backend.env
+      - env/db.env
+    ports:
+      - "5555:5555"
+    depends_on:
+      celery_worker:
+        condition: service_healthy
+  celery_worker:
+    build:
+      context: ./
+      dockerfile: docker/python/Dockerfile
+    volumes:
+      - ./src:/src/
+    command: /entrypoint-celeryworker.sh
+    env_file:
+      - env/backend.env
+      - env/db.env
+    depends_on:
+      redis:
+        condition: service_started
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "celery -A leaf.celery.celery inspect ping" ]
+      interval: 5s
+      timeout: 10s
+      retries: 5
 
