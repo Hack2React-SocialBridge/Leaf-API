@@ -9,6 +9,11 @@ def get_user_by_email(db: Session, email: str) -> User:
     return user
 
 
+def get_active_user_by_email(db: Session, email: str) -> User:
+    user = db.query(User).filter(User.disabled == False, User.email == email).first()
+    return user
+
+
 def create_one(db: Session, **user_props) -> User:
     db_user = User(**user_props)
     db.add(db_user)

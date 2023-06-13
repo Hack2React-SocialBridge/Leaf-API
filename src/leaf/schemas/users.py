@@ -38,3 +38,12 @@ class UserCreateSchema(BaseModel):
 
 class EmailConfirmationSchema(BaseModel):
     key: str
+
+
+class RequestPasswordResetSchema(BaseModel):
+    email: str
+
+
+class PasswordResetSchema(BaseModel):
+    key: str
+    password: str
