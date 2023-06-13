@@ -20,13 +20,14 @@ from leaf.schemas.users import (
     TokenSchema,
     UserSchema,
     UserCreateSchema,
-    EmailConfirmationSchema
+    EmailConfirmationSchema,
+    RequestPasswordResetSchema
 )
-from leaf.repositories.users import create_one, update_one
+from leaf.schemas.common import DetailsResponseSchema
+from leaf.repositories.users import create_one, update_one, get_user_by_email
 from leaf.mail import send_mail
 from leaf.jinja_config import env
 from leaf.auth import generate_confirmation_token
-
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -76,12 +77,13 @@ async def register(user: UserCreateSchema = Body(...), db: Session = Depends(get
 
 
 @router.post("/confirm", status_code=200)
-async def confirm_user(token: EmailConfirmationSchema = Body(...), db: Session = Depends(get_db)) -> UserSchema | Response:
+async def confirm_user(token: EmailConfirmationSchema = Body(...),
+                       db: Session = Depends(get_db)) -> UserSchema | DetailsResponseSchema:
     try:
         email = confirm_token(token.key)
         return update_one(db, user_email=email, disabled=False)
     except (BadSignature, SignatureExpired):
-        return Response({"details": "Invalid token"}, status_code=400)
+        return Response(DetailsResponseSchema(detail="Invalid token"), status_code=400)
 
 
 @router.post("/change-password")
