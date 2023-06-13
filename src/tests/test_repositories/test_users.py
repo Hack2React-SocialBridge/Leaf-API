@@ -21,3 +21,9 @@ def test_get_active_user_by_email_not_passed_case(db):
     user = UserFactory.create(disabled=True)
     db_user = get_active_user_by_email(db, user.email)
     assert db_user is None
+
+
+def test_create_one(db):
+    create_one(db, email="create_one_test@test.com", hashed_password="test", first_name="test", last_name="test", disabled=True)
+    db_user = get_user_by_email(db, email="create_one_test@test.com")
+    assert db_user is not None
