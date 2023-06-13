@@ -24,7 +24,7 @@ from leaf.schemas.users import (
     RequestPasswordResetSchema
 )
 from leaf.schemas.common import DetailsResponseSchema
-from leaf.repositories.users import create_one, update_one, get_user_by_email
+from leaf.repositories.users import create_one, update_one, get_user_by_email, get_active_user_by_email
 from leaf.mail import send_mail
 from leaf.jinja_config import env
 from leaf.auth import generate_confirmation_token
@@ -86,4 +86,21 @@ async def confirm_user(token: EmailConfirmationSchema = Body(...),
         return Response(DetailsResponseSchema(detail="Invalid token"), status_code=400)
 
 
-@router.post("/change-password")
+@router.post("/password-reset", status_code=200)
+async def password_reset(user: RequestPasswordResetSchema = Body(...),
+                         db: Session = Depends(get_db)) -> DetailsResponseSchema:
+    db_user = get_active_user_by_email(db, user.email)
+    if db_user:
+        confirmation_token = generate_confirmation_token(user.email)
+        url_template = env.from_string(environ.get("PASSWORD_RESET_URL"))
+        reset_url = url_template.render(confirmation_token=confirmation_token)
+
+        template = env.get_template("password_reset.html")
+        msg_content = template.render(reset_url=reset_url)
+        message = MIMEMultipart("alternative")
+        message["Subject"] = "Leaf account - password reset"
+        message["From"] = environ.get("SMTP_EMAIL")
+        message["To"] = user.email
+        message.attach(MIMEText(msg_content, "html"))
+        send_mail.delay(user.email, message.as_string())
+    return DetailsResponseSchema(detail="Password reset instructions have been sent to the provided email address.")

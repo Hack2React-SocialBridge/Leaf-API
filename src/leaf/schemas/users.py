@@ -38,3 +38,7 @@ class UserCreateSchema(BaseModel):
 
 class EmailConfirmationSchema(BaseModel):
     key: str
+
+
+class RequestPasswordResetSchema(BaseModel):
+    email: str
