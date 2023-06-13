@@ -3,14 +3,16 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from os import environ
 
-from fastapi import Depends, HTTPException, status, APIRouter, Body
+from fastapi import Depends, HTTPException, status, APIRouter, Body, Response
 from sqlalchemy.orm import Session
+from itsdangerous import BadSignature, SignatureExpired
 
 from leaf.auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     authenticate_user,
     create_access_token,
     get_password_hash,
+    confirm_token,
 )
 from leaf.database import get_db
 from leaf.schemas.users import (
@@ -18,8 +20,9 @@ from leaf.schemas.users import (
     TokenSchema,
     UserSchema,
     UserCreateSchema,
+    EmailConfirmationSchema
 )
-from leaf.repositories.users import create_one
+from leaf.repositories.users import create_one, update_one
 from leaf.mail import send_mail
 from leaf.jinja_config import env
 from leaf.auth import generate_confirmation_token
@@ -70,3 +73,15 @@ async def register(user: UserCreateSchema = Body(...), db: Session = Depends(get
     send_mail.delay(user.email, message.as_string())
 
     return db_user
+
+
+@router.post("/confirm", status_code=200)
+async def confirm_user(token: EmailConfirmationSchema = Body(...), db: Session = Depends(get_db)) -> UserSchema | Response:
+    try:
+        email = confirm_token(token.key)
+        return update_one(db, user_email=email, disabled=False)
+    except (BadSignature, SignatureExpired):
+        return Response({"details": "Invalid token"}, status_code=400)
+
+
+@router.post("/change-password")

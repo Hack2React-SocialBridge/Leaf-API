@@ -34,3 +34,7 @@ class UserCreateSchema(BaseModel):
     password: str
     first_name: str
     last_name: str
+
+
+class EmailConfirmationSchema(BaseModel):
+    key: str

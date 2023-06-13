@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import update
 
 from leaf.models import User
 
@@ -14,3 +15,13 @@ def create_one(db: Session, **user_props) -> User:
     db.commit()
     db.refresh(db_user)
     return db_user
+
+
+def update_one(db: Session, user_email: str, **user_props) -> User:
+    db.execute(
+        update(User)
+        .where(User.email == user_email)
+        .values(**user_props)
+    )
+    db.commit()
+    return get_user_by_email(db, user_email)
