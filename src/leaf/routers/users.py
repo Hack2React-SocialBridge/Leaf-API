@@ -56,13 +56,17 @@ async def register(user: UserCreateSchema = Body(...), db: Session = Depends(get
         disabled=True,
     )
 
+    confirmation_token = generate_confirmation_token(user.email)
+    url_template = env.from_string(environ.get("CONFIRMATION_URL"))
+    confirm_url = url_template.render(confirmation_token=confirmation_token)
+
     template = env.get_template("confirmation_email.html")
-    msg_content = template.render(confirm_url=generate_confirmation_token(user.email))
+    msg_content = template.render(confirm_url=confirm_url)
     message = MIMEMultipart("alternative")
     message["Subject"] = "Leaf account - email confirmation"
     message["From"] = environ.get("SMTP_EMAIL")
     message["To"] = user.email
     message.attach(MIMEText(msg_content, "html"))
-    send_mail(user.email, message)
+    send_mail.delay(user.email, message.as_string())
 
     return db_user
