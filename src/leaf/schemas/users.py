@@ -42,3 +42,8 @@ class EmailConfirmationSchema(BaseModel):
 
 class RequestPasswordResetSchema(BaseModel):
     email: str
+
+
+class PasswordResetSchema(BaseModel):
+    key: str
+    password: str
