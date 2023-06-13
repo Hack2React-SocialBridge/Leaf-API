@@ -8,7 +8,7 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from starlette import status
-from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+from itsdangerous import URLSafeTimedSerializer
 
 from leaf.database import get_db
 from leaf.models import User
@@ -95,14 +95,11 @@ def generate_confirmation_token(email):
 Email = str
 
 
-def confirm_token(token, expiration=3600) -> Email | bool:
+def confirm_token(token, expiration=3600) -> Email:
     serializer = URLSafeTimedSerializer(SECRET_KEY)
-    try:
-        email = serializer.loads(
-            token,
-            salt=SECURITY_PASSWORD_SALT,
-            max_age=expiration
-        )
-    except (BadSignature, SignatureExpired):
-        return False
+    email = serializer.loads(
+        token,
+        salt=SECURITY_PASSWORD_SALT,
+        max_age=expiration
+    )
     return email
