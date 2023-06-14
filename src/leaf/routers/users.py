@@ -109,11 +109,11 @@ async def password_reset(user: RequestPasswordResetSchema = Body(...),
         detail="Password reset instructions have been sent to the provided email address.")
 
 
-@router.post("/password-reset-confirm/", status_code=200)
+@router.post("/password-reset-confirm", status_code=200)
 async def password_reset_confirm(body: PasswordResetSchema = Body(...), db: Session = Depends(get_db)) -> UserSchema:
     try:
         email = confirm_token(body.key)
-        new_password_hash = get_password_hash(body.password)
+        new_password_hash = get_password_hash(body.new_password)
         return update_one(db, user_email=email, hashed_password=new_password_hash)
     except (BadSignature, SignatureExpired):
         return JSONResponse(DetailsResponseSchema(detail="Invalid token").dict(), status_code=400)
