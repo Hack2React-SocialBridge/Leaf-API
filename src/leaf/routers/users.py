@@ -3,7 +3,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from os import environ
 
-from fastapi import Depends, HTTPException, status, APIRouter, Body, Response
+from fastapi import Depends, HTTPException, status, APIRouter, Body
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from itsdangerous import BadSignature, SignatureExpired
 
@@ -84,7 +85,7 @@ async def confirm_user(token: EmailConfirmationSchema = Body(...),
         email = confirm_token(token.key)
         return update_one(db, user_email=email, disabled=False)
     except (BadSignature, SignatureExpired):
-        return Response(DetailsResponseSchema(detail="Invalid token"), status_code=400)
+        return JSONResponse(DetailsResponseSchema(detail="Invalid token").dict(), status_code=400)
 
 
 @router.post("/password-reset", status_code=200)
@@ -104,7 +105,8 @@ async def password_reset(user: RequestPasswordResetSchema = Body(...),
         message["To"] = user.email
         message.attach(MIMEText(msg_content, "html"))
         send_mail.delay(user.email, message.as_string())
-    return DetailsResponseSchema(detail="Password reset instructions have been sent to the provided email address.")
+    return DetailsResponseSchema(
+        detail="Password reset instructions have been sent to the provided email address.")
 
 
 @router.post("/password-reset-confirm/", status_code=200)
@@ -114,7 +116,4 @@ async def password_reset_confirm(body: PasswordResetSchema = Body(...), db: Sess
         new_password_hash = get_password_hash(body.password)
         return update_one(db, user_email=email, hashed_password=new_password_hash)
     except (BadSignature, SignatureExpired):
-        return Response(DetailsResponseSchema(detail="Invalid token"), status_code=400)
-
-
-
+        return JSONResponse(DetailsResponseSchema(detail="Invalid token").dict(), status_code=400)
