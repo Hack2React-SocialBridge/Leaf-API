@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from tests.factories.users import UserFactory
-from leaf.auth import verify_token
+from leaf.auth import verify_token, generate_confirmation_token
 from leaf.repositories.users import get_user_by_email
 
 
@@ -29,3 +29,22 @@ def test_register_new_user(db, client):
         send_mail_mock.delay.assert_called()
         assert r.status_code == 201
         assert db_user.email == test_user_email
+
+
+def test_confirm_user_passed(db, client):
+    user = UserFactory.create(disabled=True)
+    token = generate_confirmation_token(user.email)
+    r = client.post("users/confirm", json={"key": token})
+    db_user = get_user_by_email(db, user.email)
+    assert r.status_code == 200
+    assert db_user.disabled is False
+
+
+def test_confirm_user_not_passed(db, client):
+    user = UserFactory.create(disabled=True)
+    token = "invalid_token"
+    r = client.post("users/confirm", json={"key": token})
+    db_user = get_user_by_email(db, user.email)
+    assert r.status_code == 400
+    assert r.json() == {"detail": "Invalid token"}
+    assert db_user.disabled is True
