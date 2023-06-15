@@ -4,12 +4,12 @@ from sqlalchemy import update
 from leaf.models import User
 
 
-def get_user_by_email(db: Session, email: str) -> User:
+def get_user_by_email(db: Session, email: str) -> User | None:
     user = db.query(User).filter(User.email == email).first()
     return user
 
 
-def get_active_user_by_email(db: Session, email: str) -> User:
+def get_active_user_by_email(db: Session, email: str) -> User | None:
     user = db.query(User).filter(User.disabled == False, User.email == email).first()
     return user
 
@@ -22,7 +22,7 @@ def create_one(db: Session, **user_props) -> User:
     return db_user
 
 
-def update_one(db: Session, user_email: str, **user_props) -> User:
+def update_one(db: Session, user_email: str, **user_props) -> User | None:
     db.execute(
         update(User)
         .where(User.email == user_email)
