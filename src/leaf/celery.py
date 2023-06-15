@@ -2,8 +2,7 @@ from os import environ
 
 from celery import Celery
 
-from leaf.mail import send_mail
-from leaf.tasks import resize_image
+from leaf.tasks import resize_image, send_mail
 
 CELERY_BROKER_URL = environ.get("CELERY_BROKER_URL")
 CELERY_RESULT_BACKEND = environ.get("CELERY_RESULT_BACKEND")

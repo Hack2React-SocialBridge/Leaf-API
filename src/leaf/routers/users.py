@@ -30,8 +30,7 @@ from leaf.schemas.users import (
 )
 from leaf.schemas.common import DetailsResponseSchema
 from leaf.repositories.users import create_one, update_one, get_user_by_email, get_active_user_by_email
-from leaf.mail import send_mail
-from leaf.tasks import resize_image
+from leaf.tasks import resize_image, send_mail
 from leaf.jinja_config import env
 from leaf.media import flush_old_media_resources, create_media_resource, get_media_image_url, get_resource_absolute_path
 from leaf.auth import generate_confirmation_token
