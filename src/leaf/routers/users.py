@@ -15,10 +15,9 @@ from leaf.auth import (
     create_access_token,
     get_password_hash,
     confirm_token,
-    get_current_active_user,
 )
 from leaf.database import get_db
-from leaf.dependencies import get_image_size
+from leaf.dependencies import get_image_size, get_current_active_user
 from leaf.schemas.users import (
     LoginSchema,
     TokenSchema,
