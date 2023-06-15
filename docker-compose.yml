@@ -72,6 +72,7 @@ services:
       dockerfile: docker/python/Dockerfile
     volumes:
       - ./src:/src/
+      - ./media_files:/usr/share/media/
     command: /entrypoint-celeryworker.sh
     env_file:
       - env/backend.env
