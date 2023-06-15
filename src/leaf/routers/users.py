@@ -1,9 +1,10 @@
+from pathlib import Path
 from datetime import timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from os import environ
 
-from fastapi import Depends, HTTPException, status, APIRouter, Body
+from fastapi import Depends, HTTPException, status, APIRouter, Body, UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from itsdangerous import BadSignature, SignatureExpired
@@ -14,8 +15,10 @@ from leaf.auth import (
     create_access_token,
     get_password_hash,
     confirm_token,
+    get_current_active_user,
 )
 from leaf.database import get_db
+from leaf.dependencies import get_image_size
 from leaf.schemas.users import (
     LoginSchema,
     TokenSchema,
@@ -28,10 +31,18 @@ from leaf.schemas.users import (
 from leaf.schemas.common import DetailsResponseSchema
 from leaf.repositories.users import create_one, update_one, get_user_by_email, get_active_user_by_email
 from leaf.mail import send_mail
+from leaf.tasks import resize_image
 from leaf.jinja_config import env
+from leaf.media import flush_old_media_resources, create_media_resource, get_media_image_url, get_resource_absolute_path
 from leaf.auth import generate_confirmation_token
+from leaf.models import User
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+MEDIA_FOLDER = environ.get("MEDIA_FOLDER")
+MEDIA_BASE_URL = environ.get("MEDIA_BASE_URL")
+AVAILABLE_IMAGE_SIZES = environ.get("AVAILABLE_IMAGE_SIZES")
+IMAGE_SIZES = {size: environ.get(f"{size.upper()}_IMAGE_SIZE").split("x") for size in AVAILABLE_IMAGE_SIZES.split(",")}
 
 
 @router.post("/token", response_model=TokenSchema)
@@ -117,3 +128,21 @@ async def password_reset_confirm(body: PasswordResetSchema = Body(...), db: Sess
         return update_one(db, user_email=email, hashed_password=new_password_hash)
     except (BadSignature, SignatureExpired):
         return JSONResponse(DetailsResponseSchema(detail="Invalid token").dict(), status_code=400)
+
+
+@router.put("/user-image")
+async def update_user_image(image: UploadFile, current_user: User = Depends(get_current_active_user),
+                            image_size: str = Depends(get_image_size), db: Session = Depends(get_db)):
+    image_format = image.filename.split(".")[-1]
+    relative_image_path = Path(f"{current_user.id}/user_image.{image_format}")
+    absolute_image_path = get_resource_absolute_path(relative_image_path)
+
+    flush_old_media_resources(absolute_image_path)
+    create_media_resource(absolute_image_path, await image.read())
+    resize_image.delay(str(absolute_image_path))
+
+    db_user = update_one(db, current_user.email, profile_image=str(relative_image_path.name))
+    user_data = db_user.__dict__
+    del user_data["profile_image"]
+    return UserSchema(**db_user.__dict__, profile_image=get_media_image_url(relative_image_path, image_size))
+

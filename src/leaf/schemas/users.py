@@ -24,6 +24,7 @@ class UserSchema(BaseModel):
     first_name: str
     last_name: str
     disabled: bool = True
+    profile_image: str | None = None
 
 
 class UserCreateSchema(BaseModel):
