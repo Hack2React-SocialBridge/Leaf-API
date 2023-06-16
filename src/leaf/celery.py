@@ -1,16 +1,16 @@
-from os import environ
-
 from celery import Celery
 
 from leaf.tasks import resize_image, send_mail
+from leaf.dependencies import get_settings
 
-CELERY_BROKER_URL = environ.get("CELERY_BROKER_URL")
-CELERY_RESULT_BACKEND = environ.get("CELERY_RESULT_BACKEND")
+
+settings = get_settings()
+
 
 celery = Celery(
     __name__,
-    broker=CELERY_BROKER_URL,
-    backend=CELERY_RESULT_BACKEND,
+    broker=settings.CELERY_BROKER_URL,
+    backend=settings.CELERY_RESULT_BACKEND,
     broker_pool_limit=0
 )
 celery.task(send_mail)

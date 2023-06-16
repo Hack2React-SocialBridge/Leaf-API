@@ -4,10 +4,10 @@ from os import environ
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from leaf.routers import users
+from leaf.dependencies import get_settings
 
 
-MEDIA_FOLDER = environ.get("MEDIA_FOLDER")
-MEDIA_BASE_URL = environ.get("MEDIA_BASE_URL")
+settings = get_settings()
 
 
 app = FastAPI(
@@ -17,4 +17,4 @@ app = FastAPI(
     contact={"name": "Roland Sobczak", "email": "rolandsobczak@icloud.com"},
 )
 app.include_router(users.router)
-app.mount(MEDIA_BASE_URL, StaticFiles(directory=MEDIA_FOLDER), name="media")
+app.mount(settings.MEDIA_BASE_URL, StaticFiles(directory=settings.MEDIA_FOLDER), name="media")

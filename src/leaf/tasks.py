@@ -1,23 +1,19 @@
 import smtplib
-from os import environ, remove
+from os import remove
 from pathlib import Path
 
 from celery import shared_task
 from PIL import Image
 
-AVAILABLE_IMAGE_SIZES = environ.get("AVAILABLE_IMAGE_SIZES")
-IMAGE_SIZES = {size: environ.get(f"{size.upper()}_IMAGE_SIZE").split("x") for size in AVAILABLE_IMAGE_SIZES.split(",")}
-SMTP_EMAIL = environ.get("SMTP_EMAIL")
-SMTP_USERNAME = environ.get("SMTP_USERNAME")
-SMTP_PASSWORD = environ.get("SMTP_PASSWORD")
-SMTP_HOST = environ.get("SMTP_HOST")
-SMTP_PORT = environ.get("SMTP_PORT")
+
+Width = int
+Height = int
 
 
 @shared_task
-def resize_image(file_path: str):
+def resize_image(file_path: str, image_sizes: list[Width, Height]):
     path = Path(file_path)
-    for width, height in IMAGE_SIZES.values():
+    for width, height in image_sizes:
         size = (int(width), int(height),)
         image = Image.open(path, mode="r")
         image.thumbnail(size)
@@ -26,10 +22,10 @@ def resize_image(file_path: str):
 
 
 @shared_task
-def send_mail(to: str, msg: str):
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+def send_mail(to: str, msg: str, smtp_config: dict):
+    with smtplib.SMTP(smtp_config["HOST"], smtp_config["PORT"]) as server:
         server.starttls()
-        server.login(SMTP_USERNAME, SMTP_PASSWORD)
+        server.login(smtp_config["USERNAME"], smtp_config["PASSWORD"])
         server.sendmail(
-            SMTP_EMAIL, to, msg
+            smtp_config["EMAIL"], to, msg
         )

@@ -6,6 +6,7 @@ from sqlalchemy import pool
 
 from alembic import context
 from leaf import models
+from leaf.dependencies import get_settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -22,6 +23,7 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 target_metadata = models.Base.metadata
 
+
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
@@ -29,13 +31,10 @@ target_metadata = models.Base.metadata
 
 
 def get_connection_string() -> str:
-    db_user = environ.get("POSTGRES_USER")
-    db_password = environ.get("POSTGRES_PASSWORD")
-    db_host = environ.get("POSTGRES_HOST")
-    db_port = environ.get("POSTGRES_PORT")
-    db_database = environ.get("POSTGRES_DB")
+    settings = get_settings()
 
-    return f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_database}"
+    return f"postgresql://{settings.DB_CONFIG['USER']}:{settings.DB_CONFIG['PASSWORD']}@" \
+           f"{settings.DB_CONFIG['HOST']}:{settings.DB_CONFIG['PORT']}/{settings.DB_CONFIG['DATABASE']}"
 
 
 config.set_main_option("sqlalchemy.url", get_connection_string())

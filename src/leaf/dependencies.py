@@ -1,5 +1,6 @@
 from os import environ
 from typing import Annotated
+from functools import lru_cache
 
 from fastapi import Header, HTTPException, status, Depends
 from jose import JWTError
@@ -11,21 +12,26 @@ from leaf.database import get_db
 from leaf.models import User
 from leaf.repositories.users import get_user_by_email
 from leaf.schemas.users import TokenDataSchema
-
-AVAILABLE_IMAGE_SIZES = environ.get("AVAILABLE_IMAGE_SIZES").split(",")
-IMAGE_SIZES = {size: environ.get(f"{size.upper()}_IMAGE_SIZE").split("x") for size in AVAILABLE_IMAGE_SIZES}
+from . import config
 
 
-async def get_image_size(image_size: Annotated[str, Header(...)]):
-    if image_size in AVAILABLE_IMAGE_SIZES:
-        return IMAGE_SIZES[image_size][1]
+@lru_cache()
+def get_settings():
+    return config.Settings()
+
+
+async def get_image_size(image_size: Annotated[str, Header(...)],
+                         settings: Annotated[config.Settings, Depends(get_settings)]):
+    if image_size in settings.AVAILABLE_IMAGE_SIZES:
+        return settings.IMAGE_SIZES[image_size][1]
 
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Wrong image size! Available sizes are: {AVAILABLE_IMAGE_SIZES}")
+                        detail=f"Wrong image size! Available sizes are: {settings.AVAILABLE_IMAGE_SIZES}")
 
 
 async def get_current_user(
-        token: Annotated[str, Depends(oauth2_scheme)], db: Session = Depends(get_db)
+        token: Annotated[str, Depends(oauth2_scheme)], db: Annotated[Session, Depends(get_db)],
+        settings: Annotated[config.Settings, Depends(get_settings)]
 ) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -33,7 +39,7 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        username = verify_token(token)
+        username = verify_token(token, secret_key=settings.SECRET_KEY, algorithm=settings.ALGORITHM)
         if username is None:
             raise credentials_exception
         token_data = TokenDataSchema(username=username)
