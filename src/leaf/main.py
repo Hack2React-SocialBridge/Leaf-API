@@ -1,13 +1,14 @@
-from os import environ
-
+import logging
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+
 from leaf.routers import users
 from leaf.dependencies import get_settings
 
 
 settings = get_settings()
+logging.basicConfig(level=settings.LOG_LEVEL)
 
 
 app = FastAPI(
