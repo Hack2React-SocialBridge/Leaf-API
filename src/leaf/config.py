@@ -16,6 +16,8 @@ class Settings(BaseSettings):
         "DATABASE": env("POSTGRES_DB"),
     }
 
+    LOG_LEVEL = env.log_level("LOG_LEVEL")
+
     SECRET_KEY = env("SECRET_KEY")
     SECURITY_PASSWORD_SALT = env("SECURITY_PASSWORD_SALT")
     ALGORITHM = env("ALGORITHM")
