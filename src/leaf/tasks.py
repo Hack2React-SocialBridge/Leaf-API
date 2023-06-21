@@ -5,6 +5,8 @@ from pathlib import Path
 from celery import shared_task
 from PIL import Image
 
+from leaf.logger import logger
+
 
 Width = int
 Height = int
@@ -18,7 +20,9 @@ def resize_image(file_path: str, image_sizes: list[Width, Height]):
         image = Image.open(path, mode="r")
         image.thumbnail(size)
         image.save(str(path.parent) + "/" + height + "_" + str(path.name))
+    logger.debug(f"Image resized to all formats")
     remove(path)
+    logger.debug(f"Base image removed from path: {file_path}")
 
 
 @shared_task
@@ -29,3 +33,4 @@ def send_mail(to: str, msg: str, smtp_config: dict):
         server.sendmail(
             smtp_config["EMAIL"], to, msg
         )
+    logger.debug("Message sent", extra={"user": to})
