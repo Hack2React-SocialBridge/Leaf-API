@@ -1,5 +1,5 @@
 from sqlalchemy import Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from leaf.config.database import Base
 from leaf.models.mixins import TimestampedMixin
@@ -15,3 +15,4 @@ class ThreatCategory(TimestampedMixin, Base):
         index=True,
     )
     name: Mapped[str] = mapped_column(String(255))
+    threats: Mapped["Threat"] = relationship(back_populates="category")
