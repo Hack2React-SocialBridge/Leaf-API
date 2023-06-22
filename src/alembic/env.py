@@ -1,8 +1,8 @@
-from logging.config import fileConfig
-from os import environ
+from __future__ import annotations
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from logging.config import fileConfig
+
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 from leaf import models
@@ -33,8 +33,10 @@ target_metadata = models.Base.metadata
 def get_connection_string() -> str:
     settings = get_settings()
 
-    return f"postgresql://{settings.DB_CONFIG['USER']}:{settings.DB_CONFIG['PASSWORD']}@" \
-           f"{settings.DB_CONFIG['HOST']}:{settings.DB_CONFIG['PORT']}/{settings.DB_CONFIG['DATABASE']}"
+    return (
+        f"postgresql://{settings.DB_CONFIG['USER']}:{settings.DB_CONFIG['PASSWORD']}@"
+        f"{settings.DB_CONFIG['HOST']}:{settings.DB_CONFIG['PORT']}/{settings.DB_CONFIG['DATABASE']}"
+    )
 
 
 config.set_main_option("sqlalchemy.url", get_connection_string())
@@ -79,7 +81,8 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection,
+            target_metadata=target_metadata,
         )
 
         with context.begin_transaction():

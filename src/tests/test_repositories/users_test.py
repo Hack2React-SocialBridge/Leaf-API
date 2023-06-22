@@ -1,6 +1,13 @@
-from leaf.repositories.users import get_user_by_email, get_active_user_by_email, create_one, update_one
-from tests.factories.users import UserFactory
+from __future__ import annotations
+
 from leaf.models import User
+from leaf.repositories.users import (
+    create_one,
+    get_active_user_by_email,
+    get_user_by_email,
+    update_one,
+)
+from tests.factories.users import UserFactory
 
 
 def test_get_user_by_email(db):
@@ -24,7 +31,14 @@ def test_get_active_user_by_email_not_passed_case(db):
 
 
 def test_create_one(db):
-    create_one(db, email="create_one_test@test.com", hashed_password="test", first_name="test", last_name="test", disabled=True)
+    create_one(
+        db,
+        email="create_one_test@test.com",
+        hashed_password="test",
+        first_name="test",
+        last_name="test",
+        disabled=True,
+    )
     db_user = get_user_by_email(db, email="create_one_test@test.com")
     assert db_user is not None
 

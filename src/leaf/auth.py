@@ -1,11 +1,13 @@
-from datetime import timedelta, datetime
+from __future__ import annotations
+
+from datetime import datetime, timedelta
 from os import environ
 
 from fastapi.security import OAuth2PasswordBearer
+from itsdangerous import URLSafeTimedSerializer
 from jose import jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
-from itsdangerous import URLSafeTimedSerializer
 
 from leaf.repositories.users import get_user_by_email
 
@@ -30,7 +32,12 @@ def authenticate_user(db: Session, username: str, password: str):
     return user
 
 
-def create_access_token(data: dict, secret_key: str, algorithm: str, expires_delta: timedelta | None = None):
+def create_access_token(
+    data: dict,
+    secret_key: str,
+    algorithm: str,
+    expires_delta: timedelta | None = None,
+):
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
@@ -47,7 +54,11 @@ def verify_token(token: str, secret_key: str, algorithm: str) -> str | None:
     return username
 
 
-def generate_confirmation_token(email, secret_key: str, security_password_salt: str):
+def generate_confirmation_token(
+    email,
+    secret_key: str,
+    security_password_salt: str,
+):
     serializer = URLSafeTimedSerializer(secret_key)
     return serializer.dumps(email, salt=security_password_salt)
 
@@ -55,11 +66,16 @@ def generate_confirmation_token(email, secret_key: str, security_password_salt: 
 Email = str
 
 
-def confirm_token(token, secret_key: str, security_password_salt: str, expiration=3600) -> Email:
+def confirm_token(
+    token,
+    secret_key: str,
+    security_password_salt: str,
+    expiration=3600,
+) -> Email:
     serializer = URLSafeTimedSerializer(secret_key)
     email = serializer.loads(
         token,
         salt=security_password_salt,
-        max_age=expiration
+        max_age=expiration,
     )
     return email

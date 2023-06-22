@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import logging
 
 from leaf.dependencies import get_settings
-
 
 settings = get_settings()
 
@@ -17,7 +18,7 @@ class RequestLogFormatter(logging.Formatter):
 logger = logging.getLogger()
 logger.setLevel(settings.LOG_LEVEL)
 formatter = RequestLogFormatter(
-    fmt="%(levelname)s\t %(asctime)s - %(msg)s [url=%(url)s, method=%(method)s, ip=%(ip)s, user=%(user)s]"
+    fmt="%(levelname)s\t %(asctime)s - %(msg)s [url=%(url)s, method=%(method)s, ip=%(ip)s, user=%(user)s]",
 )
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)

@@ -1,51 +1,83 @@
-from pathlib import Path
+from __future__ import annotations
+
 from datetime import timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from pathlib import Path
 
-from fastapi import Depends, status, APIRouter, Body, UploadFile, HTTPException, Request
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    HTTPException,
+    Request,
+    UploadFile,
+    status,
+)
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
 from itsdangerous import BadSignature, SignatureExpired
+from sqlalchemy.orm import Session
 
-from leaf.logger import logger
 from leaf.auth import (
     authenticate_user,
-    create_access_token,
-    get_password_hash,
     confirm_token,
+    create_access_token,
+    generate_confirmation_token,
+    get_password_hash,
 )
-from leaf.database import get_db
-from leaf.dependencies import get_image_size, get_current_active_user
-from leaf.schemas.users import (
-    LoginSchema,
-    TokenSchema,
-    UserSchema,
-    UserCreateSchema,
-    EmailConfirmationSchema,
-    RequestPasswordResetSchema,
-    PasswordResetSchema,
-)
-from leaf.repositories.users import create_one, update_one, get_user_by_email, get_active_user_by_email
-from leaf.tasks import resize_image, send_mail
-from leaf.jinja_config import env
-from leaf.media import flush_old_media_resources, create_media_resource, get_media_image_url, get_resource_absolute_path
-from leaf.auth import generate_confirmation_token
-from leaf.models import User
 from leaf.config import Settings
-from leaf.dependencies import get_settings
+from leaf.database import get_db
+from leaf.dependencies import (
+    get_current_active_user,
+    get_image_size,
+    get_settings,
+)
+from leaf.jinja_config import env
+from leaf.logger import logger
+from leaf.media import (
+    create_media_resource,
+    flush_old_media_resources,
+    get_media_image_url,
+    get_resource_absolute_path,
+)
+from leaf.models import User
+from leaf.repositories.users import (
+    create_one,
+    get_active_user_by_email,
+    get_user_by_email,
+    update_one,
+)
+from leaf.schemas.users import (
+    EmailConfirmationSchema,
+    LoginSchema,
+    PasswordResetSchema,
+    RequestPasswordResetSchema,
+    TokenSchema,
+    UserCreateSchema,
+    UserSchema,
+)
+from leaf.tasks import resize_image, send_mail
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.post("/token", response_model=TokenSchema)
-async def login_for_access_token(request: Request, form_data: LoginSchema, db: Session = Depends(get_db),
-                                 settings: Settings = Depends(get_settings)):
+async def login_for_access_token(
+    request: Request,
+    form_data: LoginSchema,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         logger.info(
             f"Invalid credentials provided",
-            extra={"url": "/token", "method": "POST", "ip": request.client.host, "user": user.email}
+            extra={
+                "url": "/token",
+                "method": "POST",
+                "ip": request.client.host,
+                "user": user.email,
+            },
         )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -54,29 +86,50 @@ async def login_for_access_token(request: Request, form_data: LoginSchema, db: S
         )
     logger.debug(
         "Credentials successful authenticated",
-        extra={"url": "/registered", "method": "POST", "ip": request.client.host, "user": user.email}
+        extra={
+            "url": "/registered",
+            "method": "POST",
+            "ip": request.client.host,
+            "user": user.email,
+        },
     )
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(
+        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
+    )
     access_token = create_access_token(
         data={"sub": user.email},
         secret_key=settings.SECRET_KEY,
         algorithm=settings.ALGORITHM,
-        expires_delta=access_token_expires
+        expires_delta=access_token_expires,
     )
     logger.debug(
         "Access token generated",
-        extra={"url": "/registered", "method": "POST", "ip": request.client.host, "user": user.email}
+        extra={
+            "url": "/registered",
+            "method": "POST",
+            "ip": request.client.host,
+            "user": user.email,
+        },
     )
     logger.info(
         "User successful generated token",
-        extra={"url": "/token", "method": "POST", "ip": request.client.host, "user": user.email}
+        extra={
+            "url": "/token",
+            "method": "POST",
+            "ip": request.client.host,
+            "user": user.email,
+        },
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.post("/register", response_model=UserSchema, status_code=201)
-async def register(request: Request, user: UserCreateSchema = Body(...), db: Session = Depends(get_db),
-                   settings: Settings = Depends(get_settings)):
+async def register(
+    request: Request,
+    user: UserCreateSchema = Body(...),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
     hashed_password = get_password_hash(user.password)
     db_user = create_one(
         db,
@@ -88,19 +141,31 @@ async def register(request: Request, user: UserCreateSchema = Body(...), db: Ses
     )
     logger.debug(
         "User created in database",
-        extra={"url": "/registered", "method": "POST", "ip": request.client.host, "user": user.email}
+        extra={
+            "url": "/registered",
+            "method": "POST",
+            "ip": request.client.host,
+            "user": user.email,
+        },
     )
     confirmation_token = generate_confirmation_token(
         user.email,
         secret_key=settings.SECRET_KEY,
-        security_password_salt=settings.SECURITY_PASSWORD_SALT
+        security_password_salt=settings.SECURITY_PASSWORD_SALT,
     )
     logger.debug(
         "Confirmation token generated",
-        extra={"url": "/registered", "method": "POST", "ip": request.client.host, "user": user.email}
+        extra={
+            "url": "/registered",
+            "method": "POST",
+            "ip": request.client.host,
+            "user": user.email,
+        },
     )
     url_template = env.from_string(settings.CONFIRMATION_URL)
-    confirm_url = url_template.render(confirmation_token=confirmation_token)
+    confirm_url = url_template.render(
+        confirmation_token=confirmation_token,
+    )
     template = env.get_template("confirmation_email.html")
     msg_content = template.render(confirm_url=confirm_url)
     message = MIMEMultipart("alternative")
@@ -108,60 +173,100 @@ async def register(request: Request, user: UserCreateSchema = Body(...), db: Ses
     message["From"] = settings.SMTP_CONFIG["EMAIL"]
     message["To"] = user.email
     message.attach(MIMEText(msg_content, "html"))
-    send_mail.delay(user.email, message.as_string(), settings.SMTP_CONFIG)
+    send_mail.delay(
+        user.email,
+        message.as_string(),
+        settings.SMTP_CONFIG,
+    )
     logger.info(
         f"New user registered",
-        extra={"url": "/registered", "method": "POST", "ip": request.client.host, "user": db_user.email}
+        extra={
+            "url": "/registered",
+            "method": "POST",
+            "ip": request.client.host,
+            "user": db_user.email,
+        },
     )
     return db_user
 
 
 @router.post("/confirm", status_code=200)
-async def confirm_user(request: Request,token: EmailConfirmationSchema = Body(...),
-                       db: Session = Depends(get_db), settings: Settings = Depends(get_settings)) -> UserSchema:
-    token_exception = HTTPException(status_code=400, detail="Invalid token")
+async def confirm_user(
+    request: Request,
+    token: EmailConfirmationSchema = Body(...),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> UserSchema:
+    token_exception = HTTPException(
+        status_code=400,
+        detail="Invalid token",
+    )
     try:
         email = confirm_token(
             token.key,
             secret_key=settings.SECRET_KEY,
-            security_password_salt=settings.SECURITY_PASSWORD_SALT
+            security_password_salt=settings.SECURITY_PASSWORD_SALT,
         )
         logger.info(
             f"User successful finished email confirmation",
-            extra={"url": "/confirm", "method": "POST", "ip": request.client.host, "user": email}
+            extra={
+                "url": "/confirm",
+                "method": "POST",
+                "ip": request.client.host,
+                "user": email,
+            },
         )
         return update_one(db, user_email=email, disabled=False)
     except BadSignature:
         logger.debug(
             "Invalid token provided",
-            extra={"url": "/confirm", "method": "POST", "ip": str(request.client.host)}
+            extra={
+                "url": "/confirm",
+                "method": "POST",
+                "ip": str(request.client.host),
+            },
         )
         raise token_exception
 
     except SignatureExpired:
         logger.debug(
             "Expired token provided",
-            extra={"url": "/confirm", "method": "POST", "ip": request.client.host,}
+            extra={
+                "url": "/confirm",
+                "method": "POST",
+                "ip": request.client.host,
+            },
         )
         raise token_exception
 
 
 @router.post("/password-reset", status_code=200)
-async def password_reset(request: Request, user: RequestPasswordResetSchema = Body(...),
-                         db: Session = Depends(get_db), settings: Settings = Depends(get_settings)):
+async def password_reset(
+    request: Request,
+    user: RequestPasswordResetSchema = Body(...),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
     db_user = get_active_user_by_email(db, user.email)
     if db_user:
         confirmation_token = generate_confirmation_token(
             user.email,
             secret_key=settings.SECRET_KEY,
-            security_password_salt=settings.SECURITY_PASSWORD_SALT
+            security_password_salt=settings.SECURITY_PASSWORD_SALT,
         )
         logger.debug(
             "Confirmation token generated",
-            extra={"url": "/password_reset", "method": "POST", "ip": request.client.host, "user": user.email}
+            extra={
+                "url": "/password_reset",
+                "method": "POST",
+                "ip": request.client.host,
+                "user": user.email,
+            },
         )
         url_template = env.from_string(settings.PASSWORD_RESET_URL)
-        reset_url = url_template.render(confirmation_token=confirmation_token)
+        reset_url = url_template.render(
+            confirmation_token=confirmation_token,
+        )
 
         template = env.get_template("password_reset.html")
         msg_content = template.render(reset_url=reset_url)
@@ -174,80 +279,158 @@ async def password_reset(request: Request, user: RequestPasswordResetSchema = Bo
     else:
         logger.debug(
             "Invalid email provided for password reset",
-            extra={"url": "/password_reset", "method": "POST", "ip": request.client.host, "user": user.email}
+            extra={
+                "url": "/password_reset",
+                "method": "POST",
+                "ip": request.client.host,
+                "user": user.email,
+            },
         )
     logger.info(
         "User started password reset process",
-        extra={"url": "/password_reset", "method": "POST", "ip": request.client.host, "user": user.email}
+        extra={
+            "url": "/password_reset",
+            "method": "POST",
+            "ip": request.client.host,
+            "user": user.email,
+        },
     )
     return JSONResponse(
-        {"detail": "Password reset instructions have been sent to the provided email address."}, status_code=200)
+        {
+            "detail": "Password reset instructions have been sent to the provided email address.",
+        },
+        status_code=200,
+    )
 
 
 @router.post("/password-reset-confirm", status_code=200)
-async def password_reset_confirm(request: Request, body: PasswordResetSchema = Body(...), db: Session = Depends(get_db),
-                                 settings: Settings = Depends(get_settings)) -> UserSchema:
-    token_exception = HTTPException(status_code=400, detail="Invalid token")
+async def password_reset_confirm(
+    request: Request,
+    body: PasswordResetSchema = Body(...),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> UserSchema:
+    token_exception = HTTPException(
+        status_code=400,
+        detail="Invalid token",
+    )
     try:
         email = confirm_token(
             body.key,
             secret_key=settings.SECRET_KEY,
-            security_password_salt=settings.SECURITY_PASSWORD_SALT
+            security_password_salt=settings.SECURITY_PASSWORD_SALT,
         )
         logger.debug(
             "Token successful confirmed",
-            extra={"url": "/password_reset-confirm", "method": "POST", "ip": request.client.host}
+            extra={
+                "url": "/password_reset-confirm",
+                "method": "POST",
+                "ip": request.client.host,
+            },
         )
         new_password_hash = get_password_hash(body.new_password)
-        db_user = update_one(db, user_email=email, hashed_password=new_password_hash)
+        db_user = update_one(
+            db,
+            user_email=email,
+            hashed_password=new_password_hash,
+        )
         logger.debug(
             "User hashed_password changed",
-            extra={"url": "/password_reset-confirm", "method": "POST", "ip": request.client.host, "user": email}
+            extra={
+                "url": "/password_reset-confirm",
+                "method": "POST",
+                "ip": request.client.host,
+                "user": email,
+            },
         )
         logger.info(
             "User finished password change",
-            extra={"url": "/password_reset-confirm", "method": "POST", "ip": request.client.host}
+            extra={
+                "url": "/password_reset-confirm",
+                "method": "POST",
+                "ip": request.client.host,
+            },
         )
         return db_user
     except BadSignature:
         logger.info(
             "User provided invalid token",
-            extra={"url": "/password_reset-confirm", "method": "POST", "ip": request.client.host}
+            extra={
+                "url": "/password_reset-confirm",
+                "method": "POST",
+                "ip": request.client.host,
+            },
         )
         raise token_exception
     except SignatureExpired:
         logger.info(
             "User provided expired token",
-            extra={"url": "/password_reset-confirm", "method": "POST", "ip": request.client.host}
+            extra={
+                "url": "/password_reset-confirm",
+                "method": "POST",
+                "ip": request.client.host,
+            },
         )
         raise token_exception
 
 
 @router.put("/user-image")
-async def update_user_image(request: Request, image: UploadFile, current_user: User = Depends(get_current_active_user),
-                            image_size: str = Depends(get_image_size), db: Session = Depends(get_db),
-                            settings: Settings = Depends(get_settings)):
+async def update_user_image(
+    request: Request,
+    image: UploadFile,
+    current_user: User = Depends(get_current_active_user),
+    image_size: str = Depends(get_image_size),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
     image_format = image.filename.split(".")[-1]
-    relative_image_path = Path(f"{current_user.id}/user_image.{image_format}")
-    absolute_image_path = get_resource_absolute_path(relative_image_path, media_folder=settings.MEDIA_FOLDER)
+    relative_image_path = Path(
+        f"{current_user.id}/user_image.{image_format}",
+    )
+    absolute_image_path = get_resource_absolute_path(
+        relative_image_path,
+        media_folder=settings.MEDIA_FOLDER,
+    )
 
     flush_old_media_resources(absolute_image_path)
     logger.debug(
         "Old media files removed from the volume",
-        extra={"url": "/user-image", "method": "POST", "ip": request.client.host, "user": current_user.email}
+        extra={
+            "url": "/user-image",
+            "method": "POST",
+            "ip": request.client.host,
+            "user": current_user.email,
+        },
     )
 
     create_media_resource(absolute_image_path, await image.read())
     logger.dbug(
         "Base image saved on the volume",
-        extra={"url": "/user-image", "method": "POST", "ip": request.client.host, "user": current_user.email}
+        extra={
+            "url": "/user-image",
+            "method": "POST",
+            "ip": request.client.host,
+            "user": current_user.email,
+        },
     )
-    resize_image.delay(str(absolute_image_path), list(settings.IMAGE_SIZES.values()))
+    resize_image.delay(
+        str(absolute_image_path),
+        list(settings.IMAGE_SIZES.values()),
+    )
 
-    db_user = update_one(db, current_user.email, profile_image=str(relative_image_path.name))
+    db_user = update_one(
+        db,
+        current_user.email,
+        profile_image=str(relative_image_path.name),
+    )
     logger.info(
         "User changed image successful",
-        extra={"url": "/user-image", "method": "POST", "ip": request.client.host, "user": current_user.email}
+        extra={
+            "url": "/user-image",
+            "method": "POST",
+            "ip": request.client.host,
+            "user": current_user.email,
+        },
     )
     user_data = db_user.__dict__
     del user_data["profile_image"]
@@ -257,5 +440,5 @@ async def update_user_image(request: Request, image: UploadFile, current_user: U
             relative_image_path,
             image_size,
             media_base_url=settings.MEDIA_BASE_URL,
-        )
+        ),
     )

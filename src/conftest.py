@@ -1,13 +1,15 @@
+from __future__ import annotations
+
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 from sqlalchemy import text
-from sqlalchemy_utils import database_exists, create_database, drop_database
+from sqlalchemy.orm import Session
+from sqlalchemy_utils import create_database, database_exists, drop_database
 
+from leaf.database import Base, get_db
 from leaf.main import app
-from leaf.database import get_db, Base
-from tests.test_database import SQLALCHEMY_TESTING_DATABASE_URL, engine
 from tests.factories.common import FactoriesSession
+from tests.test_database import SQLALCHEMY_TESTING_DATABASE_URL, engine
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -15,7 +17,9 @@ def db_engine():
     if not database_exists(SQLALCHEMY_TESTING_DATABASE_URL):
         create_database(engine.url)
     with engine.connect() as connection:
-        create_extension = text(f"CREATE EXTENSION IF NOT EXISTS postgis;")
+        create_extension = text(
+            f"CREATE EXTENSION IF NOT EXISTS postgis;",
+        )
         connection.execute(create_extension)
     Base.metadata.create_all(bind=engine)
 

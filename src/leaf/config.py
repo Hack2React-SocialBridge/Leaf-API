@@ -1,6 +1,7 @@
-from pydantic import BaseSettings
-from environs import Env
+from __future__ import annotations
 
+from environs import Env
+from pydantic import BaseSettings
 
 env = Env()
 
@@ -25,8 +26,10 @@ class Settings(BaseSettings):
     CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND")
 
     AVAILABLE_IMAGE_SIZES = env("AVAILABLE_IMAGE_SIZES")
-    IMAGE_SIZES = {size: env(f"{size.upper()}_IMAGE_SIZE").split("x") for size in
-                   AVAILABLE_IMAGE_SIZES.split(",")}
+    IMAGE_SIZES = {
+        size: env(f"{size.upper()}_IMAGE_SIZE").split("x")
+        for size in AVAILABLE_IMAGE_SIZES.split(",")
+    }
 
     MEDIA_FOLDER = env("MEDIA_FOLDER")
     MEDIA_BASE_URL = env("MEDIA_BASE_URL")
