@@ -23,3 +23,4 @@ class User(TimestampedMixin, Base):
     disabled: Mapped[bool]
     profile_image: Mapped[str]
     posts: Mapped["Post"] = relationship(back_populates="user")
+    comments: Mapped["Comment"] = relationship(back_populates="user")
