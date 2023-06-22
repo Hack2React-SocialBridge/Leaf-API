@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from sqlalchemy import Boolean, Column, Integer, String
+from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from leaf.config.database import Base
+from leaf.models.mixins import TimestampedMixin
 
 
-class User(Base):
+class User(TimestampedMixin, Base):
     __tablename__ = "users"
 
     id = Column(
