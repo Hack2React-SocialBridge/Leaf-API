@@ -4,4 +4,4 @@ set -o errexit
 set -o nounset
 
 rm -f './celerybeat.pid'
-celery -A leaf.celery.celery beat -l info
+celery -A leaf.config.celery.celery beat -l info
