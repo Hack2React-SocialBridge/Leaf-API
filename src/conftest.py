@@ -6,7 +6,8 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
-from leaf.database import Base, get_db
+from leaf.config import Base
+from leaf.dependencies import get_db
 from leaf.main import app
 from tests.factories.common import FactoriesSession
 from tests.test_database import SQLALCHEMY_TESTING_DATABASE_URL, engine

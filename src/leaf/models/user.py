@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from sqlalchemy import Boolean, Column, Integer, String
-from sqlalchemy.orm import Mapped, relationship
 
-from config.database import Base
+from leaf.config.database import Base
 
 
 class User(Base):

@@ -1,21 +1,19 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from os import environ
 from typing import Annotated
 
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException
 from jose import JWTError
 from sqlalchemy.orm import Session
 from starlette import status
 
 from leaf.auth import oauth2_scheme, verify_token
-from leaf.database import get_db
-from leaf.models import User
+from leaf.config import config
+from leaf.config.database import SessionLocal
+from leaf.models.user import User
 from leaf.repositories.users import get_user_by_email
 from leaf.schemas.users import TokenDataSchema
-
-from . import config
 
 
 @lru_cache
@@ -34,6 +32,14 @@ async def get_image_size(
         status_code=status.HTTP_400_BAD_REQUEST,
         detail=f"Wrong image size! Available sizes are: {settings.AVAILABLE_IMAGE_SIZES}",
     )
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 async def get_current_user(

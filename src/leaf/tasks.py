@@ -8,7 +8,7 @@ from typing import Sequence, Tuple
 from celery import shared_task
 from PIL import Image
 
-from leaf.logger import logger
+from leaf.config import logger
 
 Width = str
 Height = str

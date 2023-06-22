@@ -3,7 +3,7 @@ from __future__ import annotations
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
-from leaf.models import User
+from leaf.models.user import User
 
 
 def get_user_by_email(db: Session, email: str) -> User | None:

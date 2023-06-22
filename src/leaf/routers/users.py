@@ -25,26 +25,25 @@ from leaf.auth import (
     generate_confirmation_token,
     get_password_hash,
 )
-from leaf.config import Settings
-from leaf.database import get_db
+from leaf.config import logger
+from leaf.config.config import Settings
+from leaf.config.jinja_config import env
 from leaf.dependencies import (
     get_current_active_user,
+    get_db,
     get_image_size,
     get_settings,
 )
-from leaf.jinja_config import env
-from leaf.logger import logger
 from leaf.media import (
     create_media_resource,
     flush_old_media_resources,
     get_media_image_url,
     get_resource_absolute_path,
 )
-from leaf.models import User
+from leaf.models.user import User
 from leaf.repositories.users import (
     create_one,
     get_active_user_by_email,
-    get_user_by_email,
     update_one,
 )
 from leaf.schemas.users import (
