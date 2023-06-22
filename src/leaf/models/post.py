@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from leaf.config.database import Base
@@ -12,8 +12,7 @@ from leaf.models.mixins import TimestampedMixin
 class Post(TimestampedMixin, Base):
     __tablename__ = "posts"
 
-    id = Column(
-        Integer,
+    id: Mapped[int] = mapped_column(
         autoincrement=True,
         primary_key=True,
         index=True,

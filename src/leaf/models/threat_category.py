@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, String
+from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from leaf.config.database import Base
@@ -9,7 +9,6 @@ class ThreatCategory(TimestampedMixin, Base):
     __tablename__ = "threat_categories"
 
     id: Mapped[int] = mapped_column(
-        Integer,
         autoincrement=True,
         primary_key=True,
         index=True,

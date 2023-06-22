@@ -1,5 +1,5 @@
 from geoalchemy2 import Geometry
-from sqlalchemy import Column, ForeignKey, Integer
+from sqlalchemy import Column, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from leaf.config.database import Base
@@ -9,7 +9,6 @@ class Threat(Base):
     __tablename__ = "threats"
 
     id: Mapped[int] = mapped_column(
-        Integer,
         autoincrement=True,
         primary_key=True,
         index=True,
