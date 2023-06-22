@@ -10,7 +10,7 @@ from leaf.models.mixins import TimestampedMixin
 class User(TimestampedMixin, Base):
     __tablename__ = "users"
 
-    id = Column(
+    id: Mapped[int] = mapped_column(
         Integer,
         autoincrement=True,
         primary_key=True,
