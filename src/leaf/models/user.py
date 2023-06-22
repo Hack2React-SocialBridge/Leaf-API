@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from sqlalchemy import Boolean, Column, Integer, String
+from sqlalchemy.orm import Mapped, relationship
 
-from leaf.database import Base, engine
-
-Base.metadata.create_all(bind=engine)
+from config.database import Base
 
 
 class User(Base):
