@@ -24,3 +24,4 @@ class User(TimestampedMixin, Base):
     profile_image: Mapped[str]
     posts: Mapped["Post"] = relationship(back_populates="user")
     comments: Mapped["Comment"] = relationship(back_populates="user")
+    likes: Mapped["Like"] = relationship(back_populates="user")

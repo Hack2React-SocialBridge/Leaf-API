@@ -24,3 +24,4 @@ class Post(TimestampedMixin, Base):
     image: Mapped[int] = mapped_column(String)
     is_visible: Mapped[bool] = mapped_column(String)
     comments: Mapped["Comment"] = relationship(back_populates="post")
+    likes: Mapped["Likes"] = relationship(back_populates="post")

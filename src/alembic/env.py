@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from logging.config import fileConfig
 
+import geoalchemy2
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 from leaf.config.database import Base
 from leaf.dependencies import get_settings
-from leaf.models import comments, post, threat, threat_category, user
+from leaf.models import comments, like, post, threat, threat_category, user
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
