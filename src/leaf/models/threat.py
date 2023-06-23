@@ -19,3 +19,4 @@ class Threat(Base):
         back_populates="threats",
         uselist=False,
     )
+    posts: Mapped["Post"] = relationship(back_populates="threat")

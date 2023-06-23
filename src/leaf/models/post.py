@@ -24,3 +24,5 @@ class Post(TimestampedMixin, Base):
     is_visible: Mapped[bool] = mapped_column(String)
     comments: Mapped["Comment"] = relationship(back_populates="post")
     likes: Mapped["Likes"] = relationship(back_populates="post")
+    threat_id: Mapped[int] = mapped_column(ForeignKey("threats.id"))
+    threat: Mapped["Threat"] = relationship(back_populates="posts", uselist=False)
