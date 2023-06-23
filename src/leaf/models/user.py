@@ -12,7 +12,7 @@ from leaf.models.mixins import TimestampedMixin
 
 class PermissionsType(enum.Enum):
     read_users = 1
-    create_content = 2
+    modify_users = 2
     grant_permissions = 4
     revoke_permissions = 8
     read_threats = 16
@@ -39,6 +39,38 @@ class User(TimestampedMixin, Base):
     permissions: Mapped[int] = mapped_column(default=0)
     group_id: Mapped[Optional[int]] = mapped_column(ForeignKey("groups.id"))
     group: Mapped["Group"] = relationship(back_populates="users", uselist=False)
+
+    def check_permissions(self, permission: int) -> bool:
+        """Checks if User have specified permission using & byte operator
+
+        Args:
+            permission (int): Permission to check,
+            Should be a value from PermissionsType Enum
+
+        Returns: True if user have permission, False if User doesn't have
+        """
+        return bool(self.permissions & permission)
+
+    @property
+    def mapped_permissions(self) -> dict:
+        """Returns dict with mapped permission_name: bool
+        for example if user have permissions read_users and grant_permissions returns dict:
+        {
+            'read_users': True,
+            'modify_users': False,
+            'grant_permissions': True,
+            'revoke_permissions': False,
+            'read_threats': False,
+            'modify_threats': False,
+        }
+
+        Returns: dict with mapped permissions
+
+        """
+        return {
+            permission.name: self.check_permissions(permission.value)
+            for permission in PermissionsType
+        }
 
 
 class Group(TimestampedMixin, Base):
