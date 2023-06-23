@@ -32,11 +32,11 @@ class User(TimestampedMixin, Base):
     first_name: Mapped[str] = mapped_column(String(255))
     last_name: Mapped[str] = mapped_column(String(255))
     disabled: Mapped[bool]
-    profile_image: Mapped[str]
+    profile_image: Mapped[str] = mapped_column(nullable=True)
     posts: Mapped["Post"] = relationship(back_populates="user")
     comments: Mapped["Comment"] = relationship(back_populates="user")
     likes: Mapped["Like"] = relationship(back_populates="user")
-    permissions: Mapped[int]
+    permissions: Mapped[int] = mapped_column(default=0)
     group_id: Mapped[Optional[int]] = mapped_column(ForeignKey("groups.id"))
     group: Mapped["Group"] = relationship(back_populates="users", uselist=False)
 
