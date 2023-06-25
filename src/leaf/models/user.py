@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import enum
-from typing import Optional
+from typing import List
 
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -17,6 +17,15 @@ class PermissionsType(enum.Enum):
     revoke_permissions = 8
     read_threats = 16
     modify_threats = 32
+
+
+class GroupMembership(TimestampedMixin, Base):
+    __tablename__ = "groups_users"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    # user: Mapped["User"] = relationship()
+    group_id: Mapped[int] = mapped_column(ForeignKey("groups.id"), primary_key=True)
+    # group: Mapped["Group"] = relationship()
 
 
 class User(TimestampedMixin, Base):
@@ -37,8 +46,10 @@ class User(TimestampedMixin, Base):
     comments: Mapped["Comment"] = relationship(back_populates="user")
     likes: Mapped["Like"] = relationship(back_populates="user")
     permissions: Mapped[int] = mapped_column(default=0)
-    group_id: Mapped[Optional[int]] = mapped_column(ForeignKey("groups.id"))
-    group: Mapped["Group"] = relationship(back_populates="users", uselist=False)
+    groups: Mapped["Group"] = relationship(
+        secondary="groups_users",
+        back_populates="users",
+    )
 
     def check_permissions(self, permission: int) -> bool:
         """Checks if User have specified permission using & byte operator
@@ -83,4 +94,7 @@ class Group(TimestampedMixin, Base):
     )
     name: Mapped[str] = mapped_column(String(255), unique=True)
     permissions: Mapped[int]
-    users: Mapped["User"] = relationship(back_populates="group")
+    users: Mapped["User"] = relationship(
+        secondary="groups_users",
+        back_populates="groups",
+    )
