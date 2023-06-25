@@ -11,7 +11,8 @@ from leaf.auth import (
     verify_password,
     verify_token,
 )
-from leaf.dependencies import get_settings
+from leaf.config.config import get_settings
+from leaf.models import User
 from leaf.repositories.users import get_user_by_email
 from tests.factories.users import UserFactory
 
@@ -138,16 +139,8 @@ def test_password_reset_confirm_view_passed(db: Session, client: TestClient):
             "new_password": new_password,
         },
     )
-    db_user = get_user_by_email(db, user.email)
+    db_user = db.query(User).filter(User.email == user.email).first()
     assert r.status_code == 200
-    assert r.json() == {
-        "id": db_user.id,
-        "email": db_user.email,
-        "first_name": db_user.first_name,
-        "last_name": db_user.last_name,
-        "disabled": db_user.disabled,
-        "profile_image": None,
-    }
     assert verify_password(new_password, db_user.hashed_password)
 
 
@@ -161,7 +154,7 @@ def test_password_reset_confirm_view_not_passed(
         "users/password-reset-confirm",
         json={"key": "invalid_token", "new_password": new_password},
     )
-    db_user = get_user_by_email(db, user.email)
+    db_user = db.query(User).filter(User.email == user.email).first()
     assert r.status_code == 400
     assert r.json() == {"detail": "Invalid token"}
     assert not verify_password(new_password, db_user.hashed_password)

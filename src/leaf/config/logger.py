@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from leaf.dependencies import get_settings
+from leaf.config.config import get_settings
 
 settings = get_settings()
 

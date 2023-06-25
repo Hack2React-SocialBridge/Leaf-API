@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from functools import lru_cache
+
 from environs import Env
 from pydantic import BaseSettings
 
@@ -44,3 +46,8 @@ class Settings(BaseSettings):
         "HOST": env("SMTP_HOST"),
         "PORT": env("SMTP_PORT"),
     }
+
+
+@lru_cache
+def get_settings():
+    return Settings()

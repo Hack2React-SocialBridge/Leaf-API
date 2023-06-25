@@ -6,8 +6,8 @@ import geoalchemy2
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
+from leaf.config.config import get_settings
 from leaf.config.database import Base
-from leaf.dependencies import get_settings
 from leaf.models import comments, like, post, threat, threat_category, user
 
 # this is the Alembic Config object, which provides

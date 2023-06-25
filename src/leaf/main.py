@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from leaf.dependencies import get_settings
+from leaf.config.config import get_settings
 from leaf.routers import users
 
 settings = get_settings()
