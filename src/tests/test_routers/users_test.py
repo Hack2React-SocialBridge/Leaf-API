@@ -14,6 +14,7 @@ from leaf.auth import (
 from leaf.config.config import get_settings
 from leaf.models import User
 from leaf.repositories.users import get_user_by_email
+from tests.common import force_authenticate
 from tests.factories.users import UserFactory
 
 settings = get_settings()
@@ -158,3 +159,12 @@ def test_password_reset_confirm_view_not_passed(
     assert r.status_code == 400
     assert r.json() == {"detail": "Invalid token"}
     assert not verify_password(new_password, db_user.hashed_password)
+
+
+def test_fetch_current_user(db, client):
+    user = UserFactory.create()
+    schema = get_user_by_email(db, user.email)
+    force_authenticate(db, user)
+    r = client.get("users/me")
+    assert r.status_code == 200
+    assert r.json() == schema.dict()

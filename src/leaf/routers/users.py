@@ -441,3 +441,10 @@ async def update_user_image(
         },
     )
     return get_active_user_by_email(db, current_user.email, image_size)
+
+
+@router.get("/me", response_model=UserSchema)
+async def fetch_current_user(
+    current_user: User = Depends(get_current_active_user),
+):
+    return current_user
