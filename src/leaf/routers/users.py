@@ -23,34 +23,32 @@ from leaf.auth import (
     confirm_token,
     create_access_token,
     generate_confirmation_token,
+    get_current_active_user,
     get_password_hash,
 )
-from leaf.config import Settings
-from leaf.database import get_db
-from leaf.dependencies import (
-    get_current_active_user,
-    get_image_size,
-    get_settings,
-)
-from leaf.jinja_config import env
-from leaf.logger import logger
+from leaf.config.config import Settings, get_settings
+from leaf.config.database import get_db
+from leaf.config.jinja_config import env
+from leaf.config.logger import logger
 from leaf.media import (
     create_media_resource,
     flush_old_media_resources,
+    get_image_size,
     get_media_image_url,
     get_resource_absolute_path,
 )
-from leaf.models import User
+from leaf.models.user import User
 from leaf.repositories.users import (
     create_one,
     get_active_user_by_email,
-    get_user_by_email,
     update_one,
 )
 from leaf.schemas.users import (
     EmailConfirmationSchema,
+    GroupProfileSchema,
     LoginSchema,
     PasswordResetSchema,
+    PermissionsSchema,
     RequestPasswordResetSchema,
     TokenSchema,
     UserCreateSchema,
@@ -87,7 +85,7 @@ async def login_for_access_token(
     logger.debug(
         "Credentials successful authenticated",
         extra={
-            "url": "/registered",
+            "url": "/token",
             "method": "POST",
             "ip": request.client.host,
             "user": user.email,
@@ -105,7 +103,7 @@ async def login_for_access_token(
     logger.debug(
         "Access token generated",
         extra={
-            "url": "/registered",
+            "url": "/token",
             "method": "POST",
             "ip": request.client.host,
             "user": user.email,
@@ -120,7 +118,8 @@ async def login_for_access_token(
             "user": user.email,
         },
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    db_user = get_active_user_by_email(db, email=user.email)
+    return TokenSchema(access_token=access_token, token_type="bearer", user=db_user)
 
 
 @router.post("/register", response_model=UserSchema, status_code=201)
@@ -187,7 +186,10 @@ async def register(
             "user": db_user.email,
         },
     )
-    return db_user
+    permissions = db_user.mapped_permissions
+    data = db_user.__dict__
+    del data["permissions"]
+    return UserSchema(**data, permissions=PermissionsSchema(**permissions), groups=[])
 
 
 @router.post("/confirm", status_code=200)
@@ -196,6 +198,7 @@ async def confirm_user(
     token: EmailConfirmationSchema = Body(...),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
+    image_size: int = Depends(get_image_size),
 ) -> UserSchema:
     token_exception = HTTPException(
         status_code=400,
@@ -216,7 +219,8 @@ async def confirm_user(
                 "user": email,
             },
         )
-        return update_one(db, user_email=email, disabled=False)
+        update_one(db, user_email=email, disabled=False)
+        return get_active_user_by_email(db, email, image_size)
     except BadSignature:
         logger.debug(
             "Invalid token provided",
@@ -276,6 +280,16 @@ async def password_reset(
         message["To"] = user.email
         message.attach(MIMEText(msg_content, "html"))
         send_mail.delay(user.email, message.as_string())
+
+        logger.info(
+            "User started password reset process",
+            extra={
+                "url": "/password_reset",
+                "method": "POST",
+                "ip": request.client.host,
+                "user": user.email,
+            },
+        )
     else:
         logger.debug(
             "Invalid email provided for password reset",
@@ -286,15 +300,6 @@ async def password_reset(
                 "user": user.email,
             },
         )
-    logger.info(
-        "User started password reset process",
-        extra={
-            "url": "/password_reset",
-            "method": "POST",
-            "ip": request.client.host,
-            "user": user.email,
-        },
-    )
     return JSONResponse(
         {
             "detail": "Password reset instructions have been sent to the provided email address.",
@@ -308,6 +313,7 @@ async def password_reset_confirm(
     request: Request,
     body: PasswordResetSchema = Body(...),
     db: Session = Depends(get_db),
+    image_size: int = Depends(get_image_size),
     settings: Settings = Depends(get_settings),
 ) -> UserSchema:
     token_exception = HTTPException(
@@ -329,7 +335,7 @@ async def password_reset_confirm(
             },
         )
         new_password_hash = get_password_hash(body.new_password)
-        db_user = update_one(
+        update_one(
             db,
             user_email=email,
             hashed_password=new_password_hash,
@@ -351,7 +357,7 @@ async def password_reset_confirm(
                 "ip": request.client.host,
             },
         )
-        return db_user
+        return get_active_user_by_email(db, email, image_size)
     except BadSignature:
         logger.info(
             "User provided invalid token",
@@ -418,9 +424,11 @@ async def update_user_image(
         list(settings.IMAGE_SIZES.values()),
     )
 
-    db_user = update_one(
+    update_one(
         db,
         current_user.email,
+        image_size,
+        settings,
         profile_image=str(relative_image_path.name),
     )
     logger.info(
@@ -432,13 +440,11 @@ async def update_user_image(
             "user": current_user.email,
         },
     )
-    user_data = db_user.__dict__
-    del user_data["profile_image"]
-    return UserSchema(
-        **db_user.__dict__,
-        profile_image=get_media_image_url(
-            relative_image_path,
-            image_size,
-            media_base_url=settings.MEDIA_BASE_URL,
-        ),
-    )
+    return get_active_user_by_email(db, current_user.email, image_size)
+
+
+@router.get("/me", response_model=UserSchema)
+async def fetch_current_user(
+    current_user: User = Depends(get_current_active_user),
+):
+    return current_user

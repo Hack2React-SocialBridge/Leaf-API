@@ -3,21 +3,27 @@ from __future__ import annotations
 from glob import glob
 from os import makedirs, path, remove
 from pathlib import Path
+from typing import Annotated
+
+from fastapi import Depends, Header, HTTPException
+from starlette import status
+
+from leaf.config.config import Settings, get_settings
 
 
 def get_resource_absolute_path(
     relative_resource_path: Path,
-    media_folder: str,
+    settings: Settings = Depends(get_settings),
 ):
-    return Path("/", media_folder, *relative_resource_path.parts)
+    return Path("/", settings.MEDIA_FOLDER, *relative_resource_path.parts)
 
 
-def create_media_resource(absolute_resource_path: Path, resource: bytes):
+def create_media_resource(absolute_resource_path: Path, file: bytes):
     directory = absolute_resource_path.parent
     if not path.exists(directory):
         makedirs(directory)
     with open(absolute_resource_path, "wb") as handler:
-        handler.write(resource)
+        handler.write(file)
 
 
 def flush_old_media_resources(absolute_resource_path: Path):
@@ -30,7 +36,22 @@ def flush_old_media_resources(absolute_resource_path: Path):
 
 def get_media_image_url(
     relative_resource_path: Path,
-    size: int,
-    media_base_url: str,
+    size: int | None = None,
 ):
-    return f"{media_base_url}/{str(relative_resource_path.parent)}/{size}_{relative_resource_path.name}"
+    settings = get_settings()
+    return f"{settings.MEDIA_BASE_URL}/{str(relative_resource_path.parent)}/{size if size else list(settings.IMAGE_SIZES.values())[0][1]}_{relative_resource_path.name}"
+
+
+async def get_image_size(
+    image_size: str = Header(default=None),
+) -> int:
+    settings = get_settings()
+    if image_size is None:
+        return list(settings.IMAGE_SIZES.values())[0][1]
+    elif image_size in settings.AVAILABLE_IMAGE_SIZES:
+        return settings.IMAGE_SIZES[image_size][1]
+
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=f"Wrong image size! Available sizes are: {settings.AVAILABLE_IMAGE_SIZES}",
+    )

@@ -3,7 +3,7 @@ from __future__ import annotations
 import factory
 
 from leaf.auth import get_password_hash
-from leaf.models import User
+from leaf.models.user import User
 from tests.factories.common import FactoriesSession
 
 

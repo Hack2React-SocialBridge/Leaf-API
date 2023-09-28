@@ -2,14 +2,23 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from os import environ
+from typing import Annotated
 
+from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from itsdangerous import URLSafeTimedSerializer
-from jose import jwt
+from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
+from starlette import status
 
+from leaf.config import config
+from leaf.config.config import get_settings
+from leaf.config.database import get_db
+from leaf.media import get_image_size
+from leaf.models import User
 from leaf.repositories.users import get_user_by_email
+from leaf.schemas.users import TokenDataSchema
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -24,7 +33,7 @@ def get_password_hash(password):
 
 
 def authenticate_user(db: Session, username: str, password: str):
-    user = get_user_by_email(db, username)
+    user = db.query(User).filter(User.disabled == False, User.email == username).first()
     if not user:
         return False
     if not verify_password(password, user.hashed_password):
@@ -79,3 +88,39 @@ def confirm_token(
         max_age=expiration,
     )
     return email
+
+
+async def get_current_user(
+    token: Annotated[str, Depends(oauth2_scheme)],
+    db: Annotated[Session, Depends(get_db)],
+    settings: Annotated[config.Settings, Depends(get_settings)],
+    image_size: Annotated[int, Depends(get_image_size)],
+) -> User:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        username = verify_token(
+            token,
+            secret_key=settings.SECRET_KEY,
+            algorithm=settings.ALGORITHM,
+        )
+        if username is None:
+            raise credentials_exception
+        token_data = TokenDataSchema(username=username)
+    except JWTError:
+        raise credentials_exception
+    user = get_user_by_email(db, token_data.username, image_size)
+    if user is None:
+        raise credentials_exception
+    return user
+
+
+async def get_current_active_user(
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> User:
+    if current_user.disabled:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user

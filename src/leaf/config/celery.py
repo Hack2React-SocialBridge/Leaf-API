@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from celery import Celery
 
-from leaf.dependencies import get_settings
+from leaf.config.config import get_settings
 from leaf.tasks import resize_image, send_mail
 
 settings = get_settings()

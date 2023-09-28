@@ -1,11 +1,8 @@
 from __future__ import annotations
 
+from typing import List
+
 from pydantic import BaseModel, PositiveInt
-
-
-class TokenSchema(BaseModel):
-    access_token: str
-    token_type: str
 
 
 class TokenDataSchema(BaseModel):
@@ -15,6 +12,23 @@ class TokenDataSchema(BaseModel):
 class LoginSchema(BaseModel):
     username: str
     password: str
+
+
+class GroupProfileSchema(BaseModel):
+    class Config:
+        orm_mode = True
+
+    id: PositiveInt
+    name: str
+
+
+class PermissionsSchema(BaseModel):
+    read_users: bool
+    modify_users: bool
+    grant_permissions: bool
+    revoke_permissions: bool
+    read_threats: bool
+    modify_threats: bool
 
 
 class UserSchema(BaseModel):
@@ -27,6 +41,14 @@ class UserSchema(BaseModel):
     last_name: str
     disabled: bool = True
     profile_image: str | None = None
+    permissions: PermissionsSchema
+    groups: List[GroupProfileSchema]
+
+
+class TokenSchema(BaseModel):
+    access_token: str
+    token_type: str
+    user: UserSchema
 
 
 class UserCreateSchema(BaseModel):
