@@ -1,0 +1,89 @@
+version: "3.9"
+services:
+  backend:
+    build:
+      context: ./
+      dockerfile: docker/python/Dockerfile
+    volumes:
+      - ./src:/src/
+      - ./media_files:/usr/share/media/
+    ports:
+      - "8000:8000"
+    env_file:
+      - env/backend.env
+      - env/db.env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    build:
+      context: ./
+      dockerfile: docker/postgres/Dockerfile
+    volumes:
+      - ./db_data:/var/lib/postgresql/data
+    platform: linux/amd64
+    env_file:
+       - env/db.env
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "psql -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - "./cache-data:/data"
+  celery_beat:
+    build:
+      context: ./
+      dockerfile: docker/python/Dockerfile
+    command: /entrypoint-celerybeat.sh
+    volumes:
+      - ./src:/src/
+    env_file:
+      - env/backend.env
+      - env/db.env
+    depends_on:
+      redis:
+        condition: service_started
+      db:
+        condition: service_healthy
+  flower:
+    build:
+      context: ./
+      dockerfile: docker/python/Dockerfile
+    command: /entrypoint-flower.sh
+    volumes:
+      - ./src:/src/
+    env_file:
+      - env/backend.env
+      - env/db.env
+    ports:
+      - "5555:5555"
+    depends_on:
+      celery_worker:
+        condition: service_healthy
+  celery_worker:
+    build:
+      context: ./
+      dockerfile: docker/python/Dockerfile
+    volumes:
+      - ./src:/src/
+      - ./media_files:/usr/share/media/
+    command: /entrypoint-celeryworker.sh
+    env_file:
+      - env/backend.env
+      - env/db.env
+    depends_on:
+      redis:
+        condition: service_started
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "celery -A leaf.celery.celery inspect ping" ]
+      interval: 5s
+      timeout: 10s
+      retries: 5
